@@ -6,15 +6,26 @@ class LazerBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const double radius = 20;
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
+    final double screenWidth = mediaQuery.size.width;
+    final double screenHeight = mediaQuery.size.height;
+
+    // Use 80% of the smaller dimension, with a max of 600 and min of 200
+    final double baseSize =
+        (screenWidth < screenHeight ? screenWidth : screenHeight) * 0.8;
+    final double boxSize = baseSize.clamp(200.0, 600.0);
+
+    // Scale radius proportionally (was 20 for 600, so ~3.33% of box size)
+    final double radius = boxSize * 0.033;
     const double thickness = 3;
-    const double outerBlur = 16;
-    final double safeMargin = (outerBlur + thickness * 2)
-        .clamp(20, 32)
-        .toDouble();
+
+    // Scale inner container sizes proportionally
+    final double innerContainerSize = boxSize * 0.9; // 540/600 = 0.9
+    final double outerContainerSize = boxSize * (560 / 600); // 560/600 ratio
+
     return SizedBox(
-      width: 600,
-      height: 600,
+      width: boxSize,
+      height: boxSize,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -23,16 +34,16 @@ class LazerBox extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Container(
-                width: 540,
-                height: 540,
+                width: innerContainerSize,
+                height: innerContainerSize,
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(83, 35, 35, 35),
                   borderRadius: BorderRadius.circular(radius),
                 ),
               ),
               Container(
-                width: 560,
-                height: 560,
+                width: outerContainerSize,
+                height: outerContainerSize,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(radius),
                   border: Border.all(color: Colors.white.withOpacity(0.12)),
@@ -55,13 +66,18 @@ class LazerBox extends StatelessWidget {
                 bidirectionalTrail: true,
                 trailLength: 120, // can be tuned or computed below
                 pathBuilder: (size) {
-                  // Inset so glow is not clipped at edges
-                  final double inset = safeMargin;
+                  // Calculate the border position to match the outer container
+                  // The outer container is centered, so calculate the offset
+                  final double borderOffset =
+                      (size.width - outerContainerSize) / 2;
+                  // The path should follow the border line exactly
+                  // Position the path rectangle at the border offset with the container size
+                  // The stroke is centered on the path, so it will align with the border
                   final Rect rect = Rect.fromLTWH(
-                    inset,
-                    inset,
-                    size.width - inset * 2,
-                    size.height - inset * 2,
+                    borderOffset,
+                    borderOffset,
+                    outerContainerSize,
+                    outerContainerSize,
                   );
                   return Path()
                     ..addRRect(RRect.fromRectXY(rect, radius, radius));
