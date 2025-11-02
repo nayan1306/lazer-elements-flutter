@@ -6,14 +6,17 @@ import 'package:lazer_widgets/lazers/shooting_star_path_follower.dart';
 class CenterShootingStar extends StatelessWidget {
   const CenterShootingStar({
     super.key,
-    this.color = const Color.fromARGB(255, 255, 255, 255),
+    this.color = const Color.fromARGB(255, 255, 106, 0),
+    this.headColor = const Color.fromARGB(255, 255, 76, 76),
     this.thickness = 3,
     this.duration = const Duration(seconds: 2),
-    this.trailLength = 400,
+    this.trailLength = 150,
     this.showBasePath = false,
   });
 
   final Color color;
+  final Color?
+  headColor; // Optional head color, defaults to white if not specified
   final double thickness;
   final Duration duration;
   final double trailLength;
@@ -23,6 +26,10 @@ class CenterShootingStar extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Calculate responsive trail length based on screen diagonal
+        final screenDiagonal = constraints.maxWidth + constraints.maxHeight;
+        final responsiveTrailLength = (trailLength / 800) * screenDiagonal;
+
         return Container(
           color: Colors.transparent,
           child: Stack(
@@ -31,9 +38,10 @@ class CenterShootingStar extends StatelessWidget {
               ShootingStarPathFollower(
                 size: Size(constraints.maxWidth, constraints.maxHeight),
                 color: color,
+                headColor: headColor,
                 thickness: thickness,
                 duration: duration,
-                trailLength: trailLength,
+                trailLength: responsiveTrailLength,
                 showBasePath: showBasePath,
                 backgroundColor: Colors.transparent,
                 pathBuilder: (size) {
@@ -71,9 +79,10 @@ class CenterShootingStar extends StatelessWidget {
               ShootingStarPathFollower(
                 size: Size(constraints.maxWidth, constraints.maxHeight),
                 color: color,
+                headColor: headColor,
                 thickness: thickness,
                 duration: duration,
-                trailLength: trailLength,
+                trailLength: responsiveTrailLength,
                 showBasePath: showBasePath,
                 backgroundColor: Colors.transparent,
                 pathBuilder: (size) {

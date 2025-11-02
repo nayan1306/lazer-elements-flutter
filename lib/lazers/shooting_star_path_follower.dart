@@ -5,6 +5,7 @@ class ShootingStarPathFollower extends StatefulWidget {
   const ShootingStarPathFollower({
     super.key,
     this.color = const Color(0xFF00E5FF),
+    this.headColor,
     this.thickness = 3,
     this.duration = const Duration(seconds: 9),
     this.trailLength = 80,
@@ -15,6 +16,8 @@ class ShootingStarPathFollower extends StatefulWidget {
   });
 
   final Color color;
+  final Color?
+  headColor; // Optional head color, defaults to white if not specified
   final double thickness;
   final Duration duration;
   final double trailLength; // in logical pixels along the path
@@ -87,6 +90,7 @@ class _ShootingStarPathFollowerState extends State<ShootingStarPathFollower>
               painter: _LaserPainter(
                 progress: _controller.value,
                 color: widget.color,
+                headColor: widget.headColor,
                 thickness: widget.thickness,
                 trailLength: widget.trailLength,
                 showBasePath: widget.showBasePath,
@@ -104,6 +108,7 @@ class _LaserPainter extends CustomPainter {
   _LaserPainter({
     required this.progress,
     required this.color,
+    this.headColor,
     required this.thickness,
     required this.trailLength,
     required this.showBasePath,
@@ -112,6 +117,7 @@ class _LaserPainter extends CustomPainter {
 
   final double progress; // 0..1
   final Color color;
+  final Color? headColor;
   final double thickness;
   final double trailLength;
   final bool showBasePath;
@@ -183,7 +189,9 @@ class _LaserPainter extends CustomPainter {
           ..blendMode = BlendMode.plus;
 
         final Paint core = Paint()
-          ..color = Colors.white.withOpacity(1.0 * fade)
+          ..color =
+              headColor?.withOpacity(1.0 * fade) ??
+              Colors.white.withOpacity(1.0 * fade)
           ..style = PaintingStyle.stroke
           ..strokeWidth = thickness
           ..strokeCap = StrokeCap.round
@@ -206,12 +214,13 @@ class _LaserPainter extends CustomPainter {
     // Draw a bright traveling head dot
     final ui.Tangent? t = metric.getTangentForOffset(end.clamp(0.0, length));
     if (t != null) {
+      final effectiveHeadColor = headColor ?? Colors.white;
       final Paint headOuter = Paint()
         ..color = color.withOpacity(0.6)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12)
         ..blendMode = BlendMode.plus;
       final Paint headCore = Paint()
-        ..color = Colors.white
+        ..color = effectiveHeadColor
         ..blendMode = BlendMode.plus;
 
       canvas.drawCircle(t.position, thickness * 1.6, headOuter);
@@ -225,6 +234,7 @@ class _LaserPainter extends CustomPainter {
   bool shouldRepaint(covariant _LaserPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.color != color ||
+        oldDelegate.headColor != headColor ||
         oldDelegate.thickness != thickness ||
         oldDelegate.trailLength != trailLength ||
         oldDelegate.showBasePath != showBasePath ||
