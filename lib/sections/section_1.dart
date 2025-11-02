@@ -253,8 +253,8 @@ class _Section1State extends State<Section1>
                     autoRotate: true,
                     cameraControls: false,
                     backgroundColor: Colors.transparent,
-                    environmentImage:
-                        'assets/3d/space.hdr', // Environment lighting for proper colors
+                    // environmentImage:
+                    //     'assets/3d/space.hdr', // Environment lighting for proper colors
                     exposure:
                         1.2, // Balanced exposure with environment lighting
                     shadowIntensity: 0.3, // Add subtle shadows for depth
