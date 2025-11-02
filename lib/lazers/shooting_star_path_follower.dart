@@ -122,7 +122,14 @@ class _LaserPainter extends CustomPainter {
     if (length <= 0) return;
 
     final double clampedTrail = trailLength.clamp(0.0, length * 0.99);
-    final double end = (progress.clamp(0.0, 1.0)) * length;
+
+    // Scale progress so that when progress = 1.0, the tail (not the head) is at the end
+    // This means: when progress = 1.0, end should be at (length + clampedTrail)
+    // So the head goes beyond the path end, but the tail reaches exactly at the end
+    final double maxHeadDistance = length + clampedTrail;
+    final double effectiveProgress = progress.clamp(0.0, 1.0);
+
+    final double end = effectiveProgress * maxHeadDistance;
     final double start = end - clampedTrail;
 
     // Base path (subtle) to indicate the route
@@ -193,15 +200,38 @@ class _LaserPainter extends CustomPainter {
       }
     }
 
-    if (start >= 0) {
-      drawSegment(start, end);
+    // Check if entire trail is beyond path (no drawing needed)
+    if (start >= length) {
+      // Entire trail is beyond the path end - don't draw anything
+      // Animation will restart when complete
     } else {
-      drawSegment(length + start, length);
-      drawSegment(0, end);
+      // Clamp end to at most length (head can't go beyond path visually)
+      final double clampedEnd = end.clamp(0.0, length);
+
+      if (start >= 0) {
+        // Trail starts on path (no wrap) - simple case
+        if (clampedEnd > start) {
+          drawSegment(start, clampedEnd);
+        }
+      } else {
+        // Trail wraps around: start is negative
+        // When a new trail starts, we don't want to show any trail at the ends
+        // Only draw the portion from the beginning of the path forward
+        // Once start >= 0, the trail will be drawn normally
+
+        // Only draw from 0 to clampedEnd (the visible portion at the start)
+        // Don't draw the wrapped portion at the end - that would show a trail
+        // at the end when a new animation cycle begins
+        if (clampedEnd > 0 && clampedEnd <= length) {
+          drawSegment(0, clampedEnd);
+        }
+      }
     }
 
     // Draw a bright traveling head dot
-    final ui.Tangent? t = metric.getTangentForOffset(end.clamp(0.0, length));
+    // Clamp end to path length since the head may extend beyond the path
+    final double headOffset = end.clamp(0.0, length);
+    final ui.Tangent? t = metric.getTangentForOffset(headOffset);
     if (t != null) {
       final effectiveHeadColor = headColor ?? Colors.white;
       final Paint headOuter = Paint()
