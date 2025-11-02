@@ -27,6 +27,7 @@ class LazerPathFollowerWidget extends StatefulWidget {
     this.pathFit = BoxFit.contain,
     this.pathAlignment = Alignment.center,
     this.padding = EdgeInsets.zero,
+    this.progressOffset = 0.0,
   });
 
   final Color color;
@@ -39,6 +40,8 @@ class LazerPathFollowerWidget extends StatefulWidget {
   final bool bidirectionalTrail;
   final bool showBasePath;
   final Color? backgroundColor;
+  final double
+  progressOffset; // offset for progress (0-1), used for symmetric lazers
 
   // Path sources
   final Path Function(Size size)? pathBuilder; // size-aware builder
@@ -110,7 +113,7 @@ class _LazerPathFollowerWidgetState extends State<LazerPathFollowerWidget>
               builder: (context, _) {
                 return CustomPaint(
                   painter: _LaserPainter(
-                    progress: _controller.value,
+                    progress: (_controller.value + widget.progressOffset) % 1.0,
                     color: widget.color,
                     coreColor: widget.coreColor,
                     glowColors: widget.glowColors,
