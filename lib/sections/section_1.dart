@@ -83,6 +83,26 @@ class _Section1State extends State<Section1>
     return _initialScale + (progress * (_maxScale - _initialScale));
   }
 
+  double _getEarthTop() {
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final initialTop = screenHeight * 0.5; // Start at 50% of screen height
+
+    // Move Earth up as scroll increases
+    // Max scroll distance determines how much the Earth can move up
+    // Earth moves from initial position (50%) to top of screen (0)
+    final maxMovement = screenHeight * 0.5; // Can move up by half screen height
+    final scrollProgress = (scrollOffset / _maxScrollDistance).clamp(0.0, 1.0);
+
+    // Calculate new top position (decreases as scroll increases)
+    final newTop = initialTop - (maxMovement * scrollProgress);
+
+    return newTop.clamp(0.0, screenHeight);
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentScale = _getCurrentScale();
@@ -92,10 +112,11 @@ class _Section1State extends State<Section1>
       body: Stack(
         children: [
           // 3D Earth at bottom center (50% of screen height) - below cockpit layer
+          // Moves up as user scrolls
           Positioned(
             left: 0,
             right: 0,
-            top: MediaQuery.of(context).size.height * 0.5,
+            top: _getEarthTop(),
             child: IgnorePointer(
               child: Center(
                 child: SizedBox(
