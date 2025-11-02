@@ -59,13 +59,25 @@ class _StarsBackgroundState extends State<StarsBackground>
           speed = widget.twinkleSpeed * 2.0;
         }
         
+        // Calculate position in polar coordinates (from center)
+        // Use uniform distribution for consistent density across the screen
+        final angle = _random.nextDouble() * math.pi * 2;
+        // Use square root to get uniform distribution in circular area
+        final distance = math.sqrt(_random.nextDouble()); // distance from center (0-1)
+        
+        // Convert to Cartesian coordinates for x, y
+        final x = 0.5 + math.cos(angle) * distance * 0.5;
+        final y = 0.5 + math.sin(angle) * distance * 0.5;
+        
         return Star(
-          x: _random.nextDouble(),
-          y: _random.nextDouble(),
+          x: x,
+          y: y,
           size: widget.minStarSize +
               _random.nextDouble() * (widget.maxStarSize - widget.minStarSize),
           twinkleDelay: _random.nextDouble() * math.pi * 2,
           twinkleSpeed: speed,
+          angle: angle,
+          distance: distance,
         );
       },
     );
@@ -100,14 +112,26 @@ class _StarsBackgroundState extends State<StarsBackground>
               speed = widget.twinkleSpeed * 2.0;
             }
             
+            // Calculate position in polar coordinates (from center)
+            // Use uniform distribution for consistent density across the screen
+            final angle = _random.nextDouble() * math.pi * 2;
+            // Use square root to get uniform distribution in circular area
+            final distance = math.sqrt(_random.nextDouble()); // distance from center (0-1)
+            
+            // Convert to Cartesian coordinates for x, y
+            final x = 0.5 + math.cos(angle) * distance * 0.5;
+            final y = 0.5 + math.sin(angle) * distance * 0.5;
+            
             return Star(
-              x: _random.nextDouble(),
-              y: _random.nextDouble(),
+              x: x,
+              y: y,
               size: widget.minStarSize +
                   _random.nextDouble() *
                       (widget.maxStarSize - widget.minStarSize),
               twinkleDelay: _random.nextDouble() * math.pi * 2,
               twinkleSpeed: speed,
+              angle: angle,
+              distance: distance,
             );
           },
         ),
@@ -147,13 +171,17 @@ class Star {
     required this.size,
     required this.twinkleDelay,
     required this.twinkleSpeed,
+    required this.angle,
+    required this.distance,
   });
 
-  final double x;
-  final double y;
+  final double x; // original x position (0-1)
+  final double y; // original y position (0-1)
   final double size;
   final double twinkleDelay;
   final double twinkleSpeed;
+  final double angle; // angle from center in radians
+  final double distance; // distance from center (0-1)
 }
 
 class StarsPainter extends CustomPainter {
@@ -183,9 +211,17 @@ class StarsPainter extends CustomPainter {
       // More dramatic opacity range for better twinkling
       final opacity = 0.1 + (twinkleValue * 0.9); // Opacity between 0.1 and 1.0
 
-      final xPos = star.x * size.width;
-      // Scroll stars vertically downward
-      final yPos = (star.y + (time * scrollSpeed * 2)) % 1.0 * size.height;
+      // Calculate radial expansion from center
+      // Stars start at original distance and expand outward
+      final animatedDistance = star.distance * (1.0 + time * scrollSpeed * 0.5);
+      
+      // Calculate final position from center using angle and animated distance
+      final centerX = size.width / 2;
+      final centerY = size.height / 2;
+      final maxRadius = math.min(centerX, centerY);
+      
+      final xPos = centerX + math.cos(star.angle) * animatedDistance * maxRadius;
+      final yPos = centerY + math.sin(star.angle) * animatedDistance * maxRadius;
 
       // Draw glow layers for twinkling stars using multiple overlapping circles
       if (star.twinkleSpeed > 0 && opacity > 0.3) {
