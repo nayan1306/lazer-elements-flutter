@@ -16,6 +16,8 @@ class _Section3State extends State<Section3>
   int _laser2Key = 0;
   int? _laser1LineIndex;
   int? _laser2LineIndex;
+  final random = math.Random();
+  static const int totalLines = 16;
 
   @override
   void initState() {
@@ -33,7 +35,7 @@ class _Section3State extends State<Section3>
     if (!mounted) return;
     setState(() {
       _laser1Key++;
-      _laser1LineIndex = _getNewLineIndex(avoidingLine: _laser2LineIndex);
+      _laser1LineIndex = _getRandomLineIndex(avoidingLine: _laser2LineIndex);
     });
     // After 4 seconds (laser duration), fire laser 2
     Future.delayed(const Duration(seconds: 4), _fireLaser2);
@@ -43,22 +45,23 @@ class _Section3State extends State<Section3>
     if (!mounted) return;
     setState(() {
       _laser2Key++;
-      _laser2LineIndex = _getNewLineIndex(avoidingLine: _laser1LineIndex);
+      _laser2LineIndex = _getRandomLineIndex(avoidingLine: _laser1LineIndex);
     });
     // After 4 seconds (laser duration), fire laser 1
     Future.delayed(const Duration(seconds: 4), _fireLaser1);
   }
 
-  int _getNewLineIndex({int? avoidingLine}) {
-    final random = math.Random();
-    final totalLines = 16; // verticalLines + 1 (0 to 15)
+  int _getRandomLineIndex({int? avoidingLine}) {
+    final availableLines = List.generate(
+      totalLines,
+      (i) => i,
+    ).where((line) => line != avoidingLine);
 
-    int newLine;
-    do {
-      newLine = random.nextInt(totalLines);
-    } while (newLine == avoidingLine);
+    if (availableLines.isEmpty) {
+      return random.nextInt(totalLines);
+    }
 
-    return newLine;
+    return availableLines.toList()[random.nextInt(availableLines.length)];
   }
 
   @override
@@ -83,7 +86,7 @@ class _Section3State extends State<Section3>
               );
             },
           ),
-          // Laser 1
+          // Laser 1 - Blue
           if (_laser1LineIndex != null)
             Positioned.fill(
               key: Key('laser1_$_laser1Key'),
@@ -99,7 +102,7 @@ class _Section3State extends State<Section3>
                 ),
               ),
             ),
-          // Laser 2
+          // Laser 2 - Red
           if (_laser2LineIndex != null)
             Positioned.fill(
               key: Key('laser2_$_laser2Key'),
@@ -202,6 +205,7 @@ class _LaserWidget extends StatelessWidget {
           color: color,
           coreColors: coreColors,
           thickness: 3,
+          trailLength: 250,
           duration: const Duration(seconds: 4),
           showBasePath: false,
         );
