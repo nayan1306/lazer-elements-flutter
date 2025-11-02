@@ -172,6 +172,62 @@ class _Section1State extends State<Section1>
     return (1.0 - smoothFadeProgress).clamp(0.0, 1.0);
   }
 
+  double _getTextOpacity() {
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
+
+    // Show text after scrolling 1000px
+    const double textShowOffset = 1000.0;
+    // Fade in over 100px for smooth appearance
+    const double fadeInDistance = 100.0;
+
+    if (scrollOffset < textShowOffset) {
+      return 0.0;
+    }
+
+    // Fade in over 100px
+    final fadeProgress = ((scrollOffset - textShowOffset) / fadeInDistance)
+        .clamp(0.0, 1.0);
+
+    // Apply smooth easing for fade in
+    final smoothFadeProgress = _easeInOutCubic(fadeProgress);
+
+    return smoothFadeProgress.clamp(0.0, 1.0);
+  }
+
+  double _getTextTopPosition() {
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    const double textShowOffset = 1000.0;
+
+    // If text hasn't appeared yet, return bottom position
+    if (scrollOffset < textShowOffset) {
+      return screenHeight; // Bottom of screen
+    }
+
+    // Movement distance: from bottom to center
+    // Calculate progress from textShowOffset to end of phase 2 (2000px)
+    const double movementEndOffset = 2000.0;
+    final movementProgress =
+        ((scrollOffset - textShowOffset) / (movementEndOffset - textShowOffset))
+            .clamp(0.0, 1.0);
+
+    // Apply smooth easing for movement
+    final smoothMovementProgress = _easeInOutCubic(movementProgress);
+
+    // Start at bottom (screenHeight), end at center (screenHeight / 2)
+    final bottomPosition = screenHeight * 0.6;
+    final centerPosition = screenHeight * 0.3;
+
+    // Interpolate from bottom to center
+    return bottomPosition -
+        (smoothMovementProgress * (bottomPosition - centerPosition));
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentScale = _getCurrentScale();
@@ -200,6 +256,29 @@ class _Section1State extends State<Section1>
                     ar: false,
                     arModes: const [],
                     disableZoom: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Text above the Earth - appears after scrolling 1500px, moves from bottom to center
+          Positioned(
+            left: 0,
+            right: 0,
+            top: _getTextTopPosition(),
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: _getTextOpacity(),
+                child: Center(
+                  child: Text(
+                    'ByG∆ZE',
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 135, 135, 135),
+                      fontFamily: 'PixelOperatorMono',
+                      fontSize: 200,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
               ),
