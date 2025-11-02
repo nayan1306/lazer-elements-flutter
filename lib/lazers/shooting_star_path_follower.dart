@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui show PathMetric, Tangent;
 
-class LazerPathFollower extends StatefulWidget {
-  const LazerPathFollower({
+class ShootingStarPathFollower extends StatefulWidget {
+  const ShootingStarPathFollower({
     super.key,
     this.color = const Color(0xFF00E5FF),
     this.thickness = 3,
@@ -24,10 +24,11 @@ class LazerPathFollower extends StatefulWidget {
   final Path Function(Size size)? pathBuilder;
 
   @override
-  State<LazerPathFollower> createState() => _LazerPathFollowerState();
+  State<ShootingStarPathFollower> createState() =>
+      _ShootingStarPathFollowerState();
 }
 
-class _LazerPathFollowerState extends State<LazerPathFollower>
+class _ShootingStarPathFollowerState extends State<ShootingStarPathFollower>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -35,17 +36,23 @@ class _LazerPathFollowerState extends State<LazerPathFollower>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration)
-      ..repeat();
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _controller.reset();
+          _controller.forward();
+        }
+      })
+      ..forward();
   }
 
   @override
-  void didUpdateWidget(covariant LazerPathFollower oldWidget) {
+  void didUpdateWidget(covariant ShootingStarPathFollower oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.duration != widget.duration) {
       _controller
         ..duration = widget.duration
         ..reset()
-        ..repeat();
+        ..forward();
     }
   }
 
