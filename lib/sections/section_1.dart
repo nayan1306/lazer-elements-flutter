@@ -71,16 +71,53 @@ class _Section1State extends State<Section1>
     }
   }
 
+  // Smooth easing function for ultra-smooth transitions
+  double _easeInOutCubic(double t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - (math.pow(-2 * t + 2, 3) / 2);
+  }
+
+  double _easeOutCubic(double t) {
+    return 1 - math.pow(1 - t, 3).toDouble();
+  }
+
   double _getCurrentScale() {
     final scrollOffset = _scrollController.hasClients
         ? _scrollController.offset
         : 0.0;
 
-    // Calculate zoom based on scroll position
-    // At scroll = 0: scale = 1.1 (initial)
-    // At scroll = maxScrollDistance: scale = 1.6 (50% zoom from initial 1.1)
-    final progress = (scrollOffset / _maxScrollDistance).clamp(0.0, 1.0);
-    return _initialScale + (progress * (_maxScale - _initialScale));
+    // Phase 1: First 1000px - normal zoom from 1.1 to 2.0 with smooth easing
+    if (scrollOffset <= _maxScrollDistance) {
+      final rawProgress = (scrollOffset / _maxScrollDistance).clamp(0.0, 1.0);
+      final smoothProgress = _easeInOutCubic(rawProgress);
+      return _initialScale + (smoothProgress * (_maxScale - _initialScale));
+    }
+
+    // Phase 2: Next 1000px - additional zoom at 2X rate from bottom 50%
+    // Zoom from 2.0 up to 2.0 + (2.0 * 0.5) = 3.0 with smooth easing
+    final phase2Offset = scrollOffset - _maxScrollDistance;
+    final rawPhase2Progress = (phase2Offset / _flashScrollDistance).clamp(
+      0.0,
+      1.0,
+    );
+    final smoothPhase2Progress = _easeInOutCubic(rawPhase2Progress);
+    final phase2Scale =
+        _maxScale +
+        (smoothPhase2Progress * (_maxScale * 0.5)); // 2X rate = 50% more
+
+    // Phase 3: After 2000px - gradually diminish by 5% with smooth easing
+    if (scrollOffset > _maxScrollDistance + _flashScrollDistance) {
+      final phase3Offset =
+          scrollOffset - (_maxScrollDistance + _flashScrollDistance);
+      final maxPhase3Scale = _maxScale * 1.5; // Max scale from phase 2
+      final diminishAmount = maxPhase3Scale * 0.05; // 5% reduction
+
+      // Diminish gradually over 500px with smooth easing
+      final rawDiminishProgress = math.min(phase3Offset / 500.0, 1.0);
+      final smoothDiminishProgress = _easeOutCubic(rawDiminishProgress);
+      return maxPhase3Scale - (diminishAmount * smoothDiminishProgress);
+    }
+
+    return phase2Scale;
   }
 
   double _getEarthTop() {
@@ -101,6 +138,38 @@ class _Section1State extends State<Section1>
     final newTop = initialTop - (maxMovement * scrollProgress);
 
     return newTop.clamp(0.0, screenHeight);
+  }
+
+  double _getCockpitOpacity() {
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
+
+    // Start fading at 1700px
+    const double fadeStartOffset = 1700.0;
+    // Complete fade by 2000px (300px fade distance)
+    const double fadeEndOffset = 2000.0;
+    const double fadeDistance = fadeEndOffset - fadeStartOffset; // 300px
+
+    // Fully visible before fade starts
+    if (scrollOffset < fadeStartOffset) {
+      return 1.0;
+    }
+
+    // Completely transparent after fade completes
+    if (scrollOffset >= fadeEndOffset) {
+      return 0.0;
+    }
+
+    // Fade from 1.0 to 0.0 over 300px (from 1700 to 2000)
+    final fadeProgress = ((scrollOffset - fadeStartOffset) / fadeDistance)
+        .clamp(0.0, 1.0);
+
+    // Apply smooth easing for ultra-smooth fade
+    final smoothFadeProgress = _easeOutCubic(fadeProgress);
+
+    // Return opacity from 1.0 to 0.0
+    return (1.0 - smoothFadeProgress).clamp(0.0, 1.0);
   }
 
   @override
@@ -147,23 +216,61 @@ class _Section1State extends State<Section1>
           ),
           // background image with shake/tremble effect and zoom
           Positioned.fill(
-            child: Transform.scale(
-              scale: currentScale,
-              child: AnimatedBuilder(
-                animation: _shakeController,
-                builder: (context, child) {
-                  // Use sinusoidal functions for smooth shake
-                  final time = _shakeController.value * 2 * math.pi;
-                  final shakeOffset = Offset(
-                    math.sin(time * 1.5) * 5, // smooth horizontal wobble
-                    math.cos(time) * 5, // smooth vertical wobble
-                  );
-                  return Transform.translate(
-                    offset: shakeOffset,
-                    child: Image.asset('assets/cockpit.png', fit: BoxFit.cover),
-                  );
-                },
-              ),
+            child: AnimatedBuilder(
+              animation: _shakeController,
+              builder: (context, child) {
+                final scrollOffset = _scrollController.hasClients
+                    ? _scrollController.offset
+                    : 0.0;
+
+                // Use sinusoidal functions for smooth shake
+                final time = _shakeController.value * 2 * math.pi;
+                final shakeOffset = Offset(
+                  math.sin(time * 1.5) * 5, // smooth horizontal wobble
+                  math.cos(time) * 5, // smooth vertical wobble
+                );
+
+                // Smoothly transition alignment from center to topCenter
+                // Phase 1: Normal zoom centered
+                // Phase 2+: Zoom from top 50% (Alignment.topCenter)
+                Alignment alignment;
+                if (scrollOffset <= _maxScrollDistance) {
+                  alignment = Alignment.center;
+                } else if (scrollOffset <=
+                    _maxScrollDistance + _flashScrollDistance) {
+                  // Smoothly blend between center and topCenter
+                  final blendProgress =
+                      ((scrollOffset - _maxScrollDistance) /
+                              _flashScrollDistance)
+                          .clamp(0.0, 1.0);
+                  final smoothBlend = _easeInOutCubic(blendProgress);
+                  // Interpolate between center (0.0, 0.0) and topCenter (0.0, -1.0)
+                  alignment = Alignment.lerp(
+                    Alignment.center,
+                    Alignment.topCenter,
+                    smoothBlend,
+                  )!;
+                } else {
+                  alignment = Alignment.topCenter;
+                }
+
+                final opacity = _getCockpitOpacity();
+
+                return Transform.translate(
+                  offset: shakeOffset,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Transform.scale(
+                      scale: currentScale,
+                      alignment: alignment,
+                      child: Image.asset(
+                        'assets/cockpit.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
