@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:lazer_widgets/box/widgets/lazer_path_follower_widget.dart';
 
 class Section3 extends StatefulWidget {
   const Section3({super.key});
@@ -11,6 +12,10 @@ class Section3 extends StatefulWidget {
 class _Section3State extends State<Section3>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  int _laser1Key = 0;
+  int _laser2Key = 0;
+  int? _laser1LineIndex;
+  int? _laser2LineIndex;
 
   @override
   void initState() {
@@ -19,6 +24,41 @@ class _Section3State extends State<Section3>
       vsync: this,
       duration: const Duration(seconds: 20),
     )..repeat();
+
+    // Start firing lasers alternately
+    Future.delayed(Duration.zero, () => _fireLaser1());
+  }
+
+  void _fireLaser1() {
+    if (!mounted) return;
+    setState(() {
+      _laser1Key++;
+      _laser1LineIndex = _getNewLineIndex(avoidingLine: _laser2LineIndex);
+    });
+    // After 4 seconds (laser duration), fire laser 2
+    Future.delayed(const Duration(seconds: 4), _fireLaser2);
+  }
+
+  void _fireLaser2() {
+    if (!mounted) return;
+    setState(() {
+      _laser2Key++;
+      _laser2LineIndex = _getNewLineIndex(avoidingLine: _laser1LineIndex);
+    });
+    // After 4 seconds (laser duration), fire laser 1
+    Future.delayed(const Duration(seconds: 4), _fireLaser1);
+  }
+
+  int _getNewLineIndex({int? avoidingLine}) {
+    final random = math.Random();
+    final totalLines = 16; // verticalLines + 1 (0 to 15)
+
+    int newLine;
+    do {
+      newLine = random.nextInt(totalLines);
+    } while (newLine == avoidingLine);
+
+    return newLine;
   }
 
   @override
@@ -31,15 +71,141 @@ class _Section3State extends State<Section3>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-      body: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: _CurvedGridPainter(animationValue: _controller.value),
-            size: Size.infinite,
-          );
-        },
+      body: Stack(
+        children: [
+          // Grid background
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _CurvedGridPainter(animationValue: _controller.value),
+                size: Size.infinite,
+              );
+            },
+          ),
+          // Laser 1
+          if (_laser1LineIndex != null)
+            Positioned.fill(
+              key: Key('laser1_$_laser1Key'),
+              child: IgnorePointer(
+                child: _LaserWidget(
+                  lineIndex: _laser1LineIndex!,
+                  gridAnimationValue: _controller.value,
+                  color: const Color.fromARGB(255, 110, 161, 255),
+                  coreColors: const [
+                    Color.fromARGB(255, 110, 161, 255),
+                    Color.fromARGB(255, 70, 57, 255),
+                  ],
+                ),
+              ),
+            ),
+          // Laser 2
+          if (_laser2LineIndex != null)
+            Positioned.fill(
+              key: Key('laser2_$_laser2Key'),
+              child: IgnorePointer(
+                child: _LaserWidget(
+                  lineIndex: _laser2LineIndex!,
+                  gridAnimationValue: _controller.value,
+                  color: const Color.fromARGB(255, 255, 100, 100),
+                  coreColors: const [
+                    Color.fromARGB(255, 255, 150, 150),
+                    Color.fromARGB(255, 255, 50, 50),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
+    );
+  }
+}
+
+class _LaserWidget extends StatelessWidget {
+  final int lineIndex;
+  final double gridAnimationValue;
+  final Color color;
+  final List<Color> coreColors;
+
+  const _LaserWidget({
+    required this.lineIndex,
+    required this.gridAnimationValue,
+    required this.color,
+    required this.coreColors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+
+        // Grid parameters (same as in _CurvedGridPainter)
+        const int verticalLines = 15;
+        const double flatEndRatio = 0.6;
+        const double topWidthRatio = 1.0;
+        const double bottomWidthRatio = 2.5;
+        const double curveControl = 1.5;
+
+        final centerX = width / 2;
+        final flatEndY = height * flatEndRatio;
+
+        // Use the specified line index
+        final t = lineIndex / verticalLines;
+        final adjustedT = t - 0.5;
+
+        return LazerPathFollowerWidget(
+          pathBuilder: (Size size) {
+            // Generate path following the EXACT same vertical line as grid
+            final path = Path();
+            final segments = 100;
+            bool first = true;
+
+            for (int j = 0; j <= segments; j++) {
+              final yT = j / segments; // 0 to 1 from top to bottom
+              final y = size.height * yT;
+
+              // Calculate width at this height (exact same calculation as grid)
+              double currentWidthRatio;
+              if (y <= flatEndY) {
+                currentWidthRatio = topWidthRatio;
+              } else {
+                final curvedProgress =
+                    (y - flatEndY) / (size.height - flatEndY);
+                final curveAmount = math.pow(curvedProgress, curveControl);
+                currentWidthRatio =
+                    topWidthRatio +
+                    (bottomWidthRatio - topWidthRatio) * curveAmount;
+              }
+
+              // Calculate x position (exact same calculation as grid)
+              final lineWidth = size.width * currentWidthRatio;
+              final halfWidth = lineWidth / 2;
+              final baseX = centerX + (adjustedT * halfWidth * 2);
+
+              // Add sway (exact same calculation as grid)
+              final sway =
+                  math.sin(gridAnimationValue * 2 * math.pi + yT * math.pi) * 3;
+              final x = baseX + sway;
+
+              if (first) {
+                path.moveTo(x, y);
+                first = false;
+              } else {
+                path.lineTo(x, y);
+              }
+            }
+
+            return path;
+          },
+          color: color,
+          coreColors: coreColors,
+          thickness: 3,
+          duration: const Duration(seconds: 4),
+          showBasePath: false,
+        );
+      },
     );
   }
 }
