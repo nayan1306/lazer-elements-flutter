@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lazer_widgets/shooting_star/shooting_star.dart';
+import 'package:lazer_widgets/sections/section_1.dart';
 
 void main() {
   runApp(const LazerWidgets());
@@ -12,10 +12,7 @@ class LazerWidgets extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData.dark(),
-      home: const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CenterShootingStar()),
-      ),
+      home: const Scaffold(backgroundColor: Colors.black, body: Section1()),
     );
   }
 }
