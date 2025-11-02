@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lazer_widgets/circle/circle_lazer.dart';
+import 'package:lazer_widgets/triangle/triangle_lazer.dart';
 
 void main() {
   runApp(const LazerWidgets());
@@ -14,7 +14,7 @@ class LazerWidgets extends StatelessWidget {
       theme: ThemeData.dark(),
       home: Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircleLazer()),
+        body: Center(child: TriangleLazer()),
       ),
     );
   }
