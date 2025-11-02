@@ -1,0 +1,210 @@
+import 'package:flutter/material.dart';
+import 'dart:ui' as ui show PathMetric, Tangent;
+
+class LazerPathFollower extends StatefulWidget {
+  const LazerPathFollower({
+    super.key,
+    this.color = const Color(0xFF00E5FF),
+    this.thickness = 3,
+    this.duration = const Duration(seconds: 9),
+    this.trailLength = 80,
+    this.backgroundColor = Colors.black,
+    this.showBasePath = true,
+    this.size = const Size(500, 500),
+    this.pathBuilder,
+  });
+
+  final Color color;
+  final double thickness;
+  final Duration duration;
+  final double trailLength; // in logical pixels along the path
+  final Color backgroundColor;
+  final bool showBasePath;
+  final Size size;
+  final Path Function(Size size)? pathBuilder;
+
+  @override
+  State<LazerPathFollower> createState() => _LazerPathFollowerState();
+}
+
+class _LazerPathFollowerState extends State<LazerPathFollower>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration)
+      ..repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant LazerPathFollower oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.duration != widget.duration) {
+      _controller
+        ..duration = widget.duration
+        ..reset()
+        ..repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: widget.size.width,
+      height: widget.size.height,
+      decoration: BoxDecoration(
+        color: widget.backgroundColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(-4, 4),
+          ),
+        ],
+      ),
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return CustomPaint(
+              painter: _LaserPainter(
+                progress: _controller.value,
+                color: widget.color,
+                thickness: widget.thickness,
+                trailLength: widget.trailLength,
+                showBasePath: widget.showBasePath,
+                pathBuilder: widget.pathBuilder,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _LaserPainter extends CustomPainter {
+  _LaserPainter({
+    required this.progress,
+    required this.color,
+    required this.thickness,
+    required this.trailLength,
+    required this.showBasePath,
+    required this.pathBuilder,
+  });
+
+  final double progress; // 0..1
+  final Color color;
+  final double thickness;
+  final double trailLength;
+  final bool showBasePath;
+  final Path Function(Size size)? pathBuilder;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Path path = (pathBuilder?.call(size)) ?? _defaultPath(size);
+    final List<ui.PathMetric> metrics = path.computeMetrics().toList();
+    if (metrics.isEmpty) return;
+    final ui.PathMetric metric = metrics.first;
+    final double length = metric.length;
+    if (length <= 0) return;
+
+    final double clampedTrail = trailLength.clamp(0.0, length * 0.99);
+    final double end = (progress.clamp(0.0, 1.0)) * length;
+    final double start = end - clampedTrail;
+
+    // Base path (subtle) to indicate the route
+    if (showBasePath) {
+      final Paint basePaint = Paint()
+        ..color = color.withOpacity(0.12)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = thickness;
+      canvas.drawPath(path, basePaint);
+    }
+
+    void drawSegment(double a, double b) {
+      if (b <= a) return;
+      final Path sub = metric.extractPath(a, b);
+
+      final Paint outerGlow = Paint()
+        ..color = color.withOpacity(0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = thickness * 3
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16)
+        ..blendMode = BlendMode.plus;
+
+      final Paint midGlow = Paint()
+        ..color = color.withOpacity(0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = thickness * 2
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
+        ..blendMode = BlendMode.plus;
+
+      final Paint core = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = thickness
+        ..blendMode = BlendMode.plus;
+
+      canvas.drawPath(sub, outerGlow);
+      canvas.drawPath(sub, midGlow);
+      canvas.drawPath(sub, core);
+    }
+
+    if (start >= 0) {
+      drawSegment(start, end);
+    } else {
+      drawSegment(length + start, length);
+      drawSegment(0, end);
+    }
+
+    // Draw a bright traveling head dot
+    final ui.Tangent? t = metric.getTangentForOffset(end);
+    if (t != null) {
+      final Paint headOuter = Paint()
+        ..color = color.withOpacity(0.6)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12)
+        ..blendMode = BlendMode.plus;
+      final Paint headCore = Paint()
+        ..color = Colors.white
+        ..blendMode = BlendMode.plus;
+
+      canvas.drawCircle(t.position, thickness * 1.6, headOuter);
+      canvas.drawCircle(t.position, thickness * 0.7, headCore);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LaserPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.color != color ||
+        oldDelegate.thickness != thickness ||
+        oldDelegate.trailLength != trailLength ||
+        oldDelegate.showBasePath != showBasePath ||
+        oldDelegate.pathBuilder != pathBuilder;
+  }
+
+  Path _defaultPath(Size size) {
+    final double w = size.width;
+    final double h = size.height;
+    const double pad = 24;
+    final Path p = Path();
+
+    p.moveTo(pad, h * 0.2);
+    p.cubicTo(w * 0.35, h * 0.05, w * 0.65, h * 0.35, w - pad, h * 0.22);
+    p.quadraticBezierTo(w * 0.55, h * 0.55, pad, h * 0.8);
+    p.cubicTo(w * 0.25, h * 0.62, w * 0.75, h * 0.62, w - pad, h * 0.78);
+
+    return p;
+  }
+}
