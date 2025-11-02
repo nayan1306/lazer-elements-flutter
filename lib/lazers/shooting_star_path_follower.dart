@@ -16,7 +16,8 @@ class ShootingStarPathFollower extends StatefulWidget {
   });
 
   final Color color;
-  final Color? headColor; // Optional head color, defaults to white if not specified
+  final Color?
+  headColor; // Optional head color, defaults to white if not specified
   final double thickness;
   final Duration duration;
   final double trailLength; // in logical pixels along the path
@@ -69,9 +70,7 @@ class _ShootingStarPathFollowerState extends State<ShootingStarPathFollower>
     return Container(
       width: widget.size.width,
       height: widget.size.height,
-      decoration: BoxDecoration(
-        color: widget.backgroundColor,
-      ),
+      decoration: BoxDecoration(color: widget.backgroundColor),
       child: RepaintBoundary(
         child: AnimatedBuilder(
           animation: _controller,
@@ -145,7 +144,7 @@ class _LaserPainter extends CustomPainter {
       if (bb <= aa + eps) return;
 
       // Slice the segment into small pieces with a fade, which smooths corners/joins
-      const int slices = 10;
+      const int slices = 15;
       final double segLen = bb - aa;
       final double step = segLen / slices;
 
@@ -161,21 +160,21 @@ class _LaserPainter extends CustomPainter {
         final Path sub = metric.extractPath(sa, sb);
 
         final Paint outerGlow = Paint()
-          ..color = color.withOpacity(0.6 * fade)
+          ..color = color.withOpacity(0.8 * fade)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = thickness * 3
+          ..strokeWidth = thickness * 4
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40)
           ..blendMode = BlendMode.plus;
 
         final Paint midGlow = Paint()
-          ..color = color.withOpacity(0.8 * fade)
+          ..color = color.withOpacity(0.9 * fade)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = thickness * 2
+          ..strokeWidth = thickness * 2.5
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24)
           ..blendMode = BlendMode.plus;
 
         final Paint core = Paint()
@@ -206,14 +205,14 @@ class _LaserPainter extends CustomPainter {
     if (t != null) {
       final effectiveHeadColor = headColor ?? Colors.white;
       final Paint headOuter = Paint()
-        ..color = color.withOpacity(0.9)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20)
+        ..color = color.withOpacity(1.0)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 35)
         ..blendMode = BlendMode.plus;
       final Paint headCore = Paint()
         ..color = effectiveHeadColor
         ..blendMode = BlendMode.plus;
 
-      canvas.drawCircle(t.position, thickness * 2.0, headOuter);
+      canvas.drawCircle(t.position, thickness * 3.0, headOuter);
       canvas.drawCircle(t.position, thickness * 0.7, headCore);
     }
 

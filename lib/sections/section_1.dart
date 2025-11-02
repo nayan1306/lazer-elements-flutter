@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lazer_widgets/backgrounds/stars_background.dart';
+import 'package:lazer_widgets/shooting_star/shooting_star.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 class Section1 extends StatefulWidget {
@@ -238,35 +239,35 @@ class _Section1State extends State<Section1>
         children: [
           // 3D Earth at bottom center (50% of screen height) - below cockpit layer
           // Moves up as user scrolls
-          Positioned(
-            left: 0,
-            right: 0,
-            top: _getEarthTop(),
-            child: IgnorePointer(
-              child: Center(
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height,
-                  child: ModelViewer(
-                    src: 'assets/3d/earth.glb',
-                    alt: 'Earth 3D Model',
-                    autoRotate: true,
-                    cameraControls: false,
-                    backgroundColor: Colors.transparent,
-                    // environmentImage:
-                    //     'assets/3d/space.hdr', // Environment lighting for proper colors
-                    exposure:
-                        1.2, // Balanced exposure with environment lighting
-                    shadowIntensity: 0.3, // Add subtle shadows for depth
+          // Positioned(
+          //   left: 0,
+          //   right: 0,
+          //   top: _getEarthTop(),
+          //   child: IgnorePointer(
+          //     child: Center(
+          //       child: SizedBox(
+          //         width: MediaQuery.of(context).size.width,
+          //         height: MediaQuery.of(context).size.height,
+          //         child: ModelViewer(
+          //           src: 'assets/3d/earth.glb',
+          //           alt: 'Earth 3D Model',
+          //           autoRotate: true,
+          //           cameraControls: false,
+          //           backgroundColor: Colors.transparent,
+          //           // environmentImage:
+          //           //     'assets/3d/space.hdr', // Environment lighting for proper colors
+          //           exposure:
+          //               1.2, // Balanced exposure with environment lighting
+          //           shadowIntensity: 0.3, // Add subtle shadows for depth
 
-                    ar: false,
-                    arModes: const [],
-                    disableZoom: true,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          //           ar: false,
+          //           arModes: const [],
+          //           disableZoom: true,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
           // Text above the Earth - appears after scrolling 1500px, moves from bottom to center
           Positioned(
             left: 0,
@@ -276,14 +277,54 @@ class _Section1State extends State<Section1>
               child: Opacity(
                 opacity: _getTextOpacity(),
                 child: Center(
-                  child: Text(
-                    'ByG∆ZE',
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 135, 135, 135),
-                      fontFamily: 'PixelOperatorMono',
-                      fontSize: 200,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.0, 0.4, 0.5, 0.90],
+                      colors: [
+                        Colors.white,
+                        const Color.fromARGB(255, 180, 180, 180), // Light grey
+                        const Color.fromARGB(255, 100, 100, 100), // Medium grey
+                        Colors.black, // Pure black - covers bottom 35%
+                      ],
+                    ).createShader(bounds),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // White glow shadow layer
+                        Text(
+                          'ByG∆ZE',
+                          style: TextStyle(
+                            color: Colors.transparent,
+                            fontFamily: 'PixelOperatorMono',
+                            fontSize: 200,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            shadows: [
+                              // Shadow(
+                              //   color: Colors.white.withOpacity(0.8),
+                              //   blurRadius: 20,
+                              // ),
+                              Shadow(
+                                color: Colors.white.withOpacity(0.6),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Main gradient text
+                        Text(
+                          'ByG∆ZE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'PixelOperatorMono',
+                            fontSize: 200,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -360,7 +401,7 @@ class _Section1State extends State<Section1>
           ),
 
           // Shooting star on top
-          // Center(child: CenterShootingStar()),
+          Center(child: CenterShootingStar()),
 
           // ScrollView to enable scrolling
           SingleChildScrollView(

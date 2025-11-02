@@ -8,9 +8,9 @@ class CenterShootingStar extends StatelessWidget {
     super.key,
     this.color = const Color.fromARGB(255, 255, 106, 0),
     this.headColor = const Color.fromARGB(255, 255, 76, 76),
-    this.thickness = 3,
+    this.thickness = 4,
     this.duration = const Duration(seconds: 2),
-    this.trailLength = 150,
+    this.trailLength = 200,
     this.showBasePath = false,
   });
 
@@ -47,29 +47,32 @@ class CenterShootingStar extends StatelessWidget {
                 pathBuilder: (size) {
                   final path = Path();
                   final centerX = size.width / 2;
-                  final startY = size.height * 0.25; // Start near top center
+                  final startY =
+                      size.height *
+                      0.6; // Start at 40% from bottom (60% from top)
 
-                  // Start from near top center
+                  // Start from center at 40% from bottom
                   path.moveTo(centerX, startY);
 
                   // Continuous curved path from center to edge
                   path.cubicTo(
                     centerX * 0.7,
-                    size.height * 0.55, // cp1: downward curve
+                    size.height * 0.7, // cp1: downward curve
                     centerX * 0.4,
-                    size.height * 0.65, // cp2: circular arc downward
+                    size.height * 0.75, // cp2: circular arc downward
                     centerX * 0.2,
-                    size.height * 0.7, // transition point
+                    size.height * 0.78, // transition point
                   );
 
                   // Continue the curve smoothly to the edge
                   path.cubicTo(
                     centerX * 0.1,
-                    size.height * 0.72, // cp1: continues curve
+                    size.height * 0.79, // cp1: continues curve
                     size.width * 0.05,
-                    size.height * 0.73, // cp2: ends curve
+                    size.height * 0.795, // cp2: ends curve
                     0, // end point
-                    size.height * 0.75, // end point
+                    size.height *
+                        0.8, // end point (20% from bottom, 80% from top)
                   );
 
                   return path;
@@ -88,30 +91,33 @@ class CenterShootingStar extends StatelessWidget {
                 pathBuilder: (size) {
                   final path = Path();
                   final centerX = size.width / 2;
-                  final startY = size.height * 0.25; // Start near top center
+                  final startY =
+                      size.height *
+                      0.6; // Start at 40% from bottom (60% from top)
 
-                  // Start from near top center
+                  // Start from center at 40% from bottom
                   path.moveTo(centerX, startY);
 
                   // Continuous curved path from center to edge
                   // Mirror symmetric to left trail
                   path.cubicTo(
                     centerX * 1.3,
-                    size.height * 0.55, // cp1: downward curve
+                    size.height * 0.7, // cp1: downward curve
                     centerX * 1.6,
-                    size.height * 0.65, // cp2: circular arc downward
+                    size.height * 0.75, // cp2: circular arc downward
                     centerX * 1.8,
-                    size.height * 0.7, // transition point
+                    size.height * 0.78, // transition point
                   );
 
                   // Continue the curve smoothly to the edge
                   path.cubicTo(
                     centerX * 1.9,
-                    size.height * 0.72, // cp1: continues curve
+                    size.height * 0.79, // cp1: continues curve
                     size.width * 0.95,
-                    size.height * 0.73, // cp2: ends curve
+                    size.height * 0.795, // cp2: ends curve
                     size.width, // end point
-                    size.height * 0.75, // end point
+                    size.height *
+                        0.8, // end point (20% from bottom, 80% from top)
                   );
 
                   return path;
