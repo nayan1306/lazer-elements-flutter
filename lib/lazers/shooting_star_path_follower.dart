@@ -155,7 +155,7 @@ class _LaserPainter extends CustomPainter {
       if (bb <= aa + eps) return;
 
       // Slice the segment into small pieces with a fade, which smooths corners/joins
-      const int slices = 20;
+      const int slices = 10;
       final double segLen = bb - aa;
       final double step = segLen / slices;
 
