@@ -10,6 +10,7 @@ class StarsBackground extends StatefulWidget {
     this.maxStarSize = 3.0,
     this.starColor = Colors.white,
     this.twinkleSpeed = 2.0,
+    this.scrollSpeed = 0.5,
   });
 
   final int starCount;
@@ -17,6 +18,7 @@ class StarsBackground extends StatefulWidget {
   final double maxStarSize;
   final Color starColor;
   final double twinkleSpeed;
+  final double scrollSpeed; // Vertical scroll speed (0-1)
 
   @override
   State<StarsBackground> createState() => _StarsBackgroundState();
@@ -129,6 +131,7 @@ class _StarsBackgroundState extends State<StarsBackground>
             stars: _stars,
             starColor: widget.starColor,
             time: _controller.value,
+            scrollSpeed: widget.scrollSpeed,
           ),
           size: Size.infinite,
         );
@@ -158,11 +161,13 @@ class StarsPainter extends CustomPainter {
     required this.stars,
     required this.starColor,
     required this.time,
+    required this.scrollSpeed,
   });
 
   final List<Star> stars;
   final Color starColor;
   final double time;
+  final double scrollSpeed;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -179,7 +184,8 @@ class StarsPainter extends CustomPainter {
       final opacity = 0.1 + (twinkleValue * 0.9); // Opacity between 0.1 and 1.0
 
       final xPos = star.x * size.width;
-      final yPos = star.y * size.height;
+      // Scroll stars vertically downward
+      final yPos = (star.y + (time * scrollSpeed * 2)) % 1.0 * size.height;
 
       // Draw glow layers for twinkling stars using multiple overlapping circles
       if (star.twinkleSpeed > 0 && opacity > 0.3) {
@@ -218,7 +224,8 @@ class StarsPainter extends CustomPainter {
   bool shouldRepaint(covariant StarsPainter oldDelegate) {
     return oldDelegate.time != time ||
         oldDelegate.stars != stars ||
-        oldDelegate.starColor != starColor;
+        oldDelegate.starColor != starColor ||
+        oldDelegate.scrollSpeed != scrollSpeed;
   }
 }
 
