@@ -1,5 +1,34 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+
+// Custom smooth scroll physics for ultra-smooth scrolling
+class _SmoothScrollPhysics extends ClampingScrollPhysics {
+  const _SmoothScrollPhysics({super.parent});
+
+  @override
+  _SmoothScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return _SmoothScrollPhysics(parent: buildParent(ancestor));
+  }
+
+  @override
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) {
+    // Use spring simulation for smooth deceleration with lower friction
+    final tolerance = this.tolerance;
+    if (velocity.abs() >= tolerance.velocity || position.outOfRange) {
+      return ClampingScrollSimulation(
+        position: position.pixels,
+        velocity: velocity,
+        friction: 0.135, // Lower friction = smoother scrolling
+        tolerance: tolerance,
+      );
+    }
+    return null;
+  }
+}
 
 class Section4 extends StatefulWidget {
   const Section4({super.key});
@@ -11,6 +40,8 @@ class Section4 extends StatefulWidget {
 class _Section4State extends State<Section4>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late ScrollController _scrollController;
+  double _scrollOffset = 0.0;
 
   @override
   void initState() {
@@ -19,26 +50,146 @@ class _Section4State extends State<Section4>
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
+
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    // Update immediately for smooth animation
+    if (mounted) {
+      setState(() {
+        _scrollOffset = _scrollController.offset;
+      });
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-      body: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: _GridPainter(animationValue: _controller.value),
-            size: Size.infinite,
-          );
-        },
+      body: Stack(
+        children: [
+          // Grid background
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _GridPainter(animationValue: _controller.value),
+                size: Size.infinite,
+              );
+            },
+          ),
+          // Fixed card at bottom of screen that lifts up
+          Positioned(
+            bottom: -100,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: _LiftingCard(scrollOffset: _scrollOffset),
+            ),
+          ),
+          // Scrollable content (for scroll detection only) - on top to receive touches
+          Positioned.fill(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const _SmoothScrollPhysics(
+                parent: ClampingScrollPhysics(),
+              ),
+              child: SizedBox(
+                height: screenHeight * 3, // Space to scroll
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiftingCard extends StatelessWidget {
+  final double scrollOffset;
+
+  const _LiftingCard({required this.scrollOffset});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Calculate animation progress based on scroll
+    // Card starts lifting immediately as you scroll
+    // Animation completes over 2 screen heights for smooth lifting
+    final animationRange = screenHeight * 2.0;
+    final progress = math.min(1.0, scrollOffset / animationRange);
+
+    // Animation curves for smooth lifting effect (like picking up a laptop)
+    final liftProgress = Curves.easeOutCubic.transform(progress);
+
+    // Transform values
+    // Start: card lying flat (rotated -90 degrees around x-axis)
+    // End: card facing forward (0 rotation, full visibility)
+
+    // Rotation: starts at -90 degrees (flat, facing down), ends at 0 degrees (facing forward)
+    final rotationAngle =
+        (1.0 - liftProgress) * -math.pi / 2; // -90 to 0 degrees
+
+    // Height adjustment: as card rotates up, lift it slightly
+    // When flat, it's at bottom (0 offset). When lifted, move it up for visibility
+    final liftHeight = liftProgress * 100.0; // Lift up 100px when fully upright
+
+    // Opacity: fades in as it lifts
+    final opacity = 0.0 + (liftProgress * 1.0);
+
+    // Rotate around bottom edge (pivot point at bottom center)
+    // Using 3D perspective transform for realistic laptop-opening effect
+    return Transform(
+      alignment: Alignment.bottomCenter,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.001) // Perspective
+        ..translate(0.0, -liftHeight) // Move up as it lifts
+        ..rotateX(rotationAngle),
+      child: Opacity(
+        opacity: opacity,
+        child: Container(
+          width: screenWidth * 0.85,
+          height: screenHeight * 0.85,
+          margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.075),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 17, 17, 17),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color.fromARGB(100, 173, 173, 173),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 20,
+                spreadRadius: 5,
+                offset: Offset(0, 10 * (1 - liftProgress)),
+              ),
+            ],
+          ),
+          child: Container(
+            width: screenWidth * 0.85,
+            height: screenHeight * 0.85,
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 26, 26, 26),
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -134,8 +285,9 @@ class _GridPainter extends CustomPainter {
       );
 
       // Combine intersection brightness and edge fade
-      final baseOpacity = 0.1 + (intersectionFade * 0.5);
-      return baseOpacity * edgeFade;
+      // Make lines more visible - grey color with higher base opacity
+      final baseOpacity = 0.2 + (intersectionFade * 0.4);
+      return baseOpacity * edgeFade * 0.5; // Reduced by 30%
     }
 
     // Draw horizontal lines with fading
@@ -163,9 +315,9 @@ class _GridPainter extends CustomPainter {
           final paint = Paint()
             ..color = const Color.fromARGB(
               255,
-              173,
-              173,
-              173,
+              150,
+              150,
+              150,
             ).withOpacity((opacity1 + opacity2) / 2)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5;
@@ -204,9 +356,9 @@ class _GridPainter extends CustomPainter {
           final paint = Paint()
             ..color = const Color.fromARGB(
               255,
-              172,
-              172,
-              172,
+              93,
+              93,
+              93,
             ).withOpacity((opacity1 + opacity2) / 2)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5;
@@ -220,15 +372,15 @@ class _GridPainter extends CustomPainter {
       }
     }
 
-    // Draw white dots at intersections
+    // Draw grey dots at intersections
     final dotPaint = Paint()
-      ..color = const Color.fromARGB(255, 162, 162, 162)
+      ..color = const Color.fromARGB(171, 40, 40, 40)
       ..style = PaintingStyle.fill;
 
     for (final intersection in intersections) {
       // Draw dot with slight glow
       final glowDotPaint = Paint()
-        ..color = const Color.fromARGB(255, 113, 113, 113).withOpacity(0.3)
+        ..color = const Color.fromARGB(172, 30, 30, 30).withOpacity(0.4)
         ..style = PaintingStyle.fill
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3);
 
