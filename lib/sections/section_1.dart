@@ -1,9 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lazer_widgets/backgrounds/stars_background.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 class Section1 extends StatefulWidget {
-  const Section1({super.key});
+  final ValueChanged<double>? onScrollProgress;
+
+  const Section1({super.key, this.onScrollProgress});
 
   @override
   State<Section1> createState() => _Section1State();
@@ -45,6 +48,27 @@ class _Section1State extends State<Section1>
     setState(() {
       // Trigger rebuild to update zoom
     });
+
+    // Notify parent about flash progress
+    if (widget.onScrollProgress != null) {
+      final scrollOffset = _scrollController.hasClients
+          ? _scrollController.offset
+          : 0.0;
+
+      // Flash progress from 0.0 to 1.0 during flash duration
+      if (scrollOffset < _maxScrollDistance) {
+        widget.onScrollProgress!(0.0);
+      } else if (scrollOffset < _maxScrollDistance + _flashScrollDistance) {
+        final progress =
+            ((scrollOffset - _maxScrollDistance) / _flashScrollDistance).clamp(
+              0.0,
+              1.0,
+            );
+        widget.onScrollProgress!(progress);
+      } else {
+        widget.onScrollProgress!(1.0);
+      }
+    }
   }
 
   double _getCurrentScale() {
@@ -59,59 +83,47 @@ class _Section1State extends State<Section1>
     return _initialScale + (progress * (_maxScale - _initialScale));
   }
 
-  double _getFlashOpacity() {
-    final scrollOffset = _scrollController.hasClients
-        ? _scrollController.offset
-        : 0.0;
-
-    // Flash starts after maxScrollDistance
-    if (scrollOffset < _maxScrollDistance) return 0.0;
-
-    final flashProgress =
-        ((scrollOffset - _maxScrollDistance) / _flashScrollDistance).clamp(
-          0.0,
-          1.0,
-        );
-
-    // Start at full opacity, then fade out
-    return 1.0 - flashProgress;
-  }
-
-  double _getFlashRadius() {
-    final scrollOffset = _scrollController.hasClients
-        ? _scrollController.offset
-        : 0.0;
-
-    // Flash starts after maxScrollDistance
-    if (scrollOffset < _maxScrollDistance) return 0.0;
-
-    final flashProgress =
-        ((scrollOffset - _maxScrollDistance) / _flashScrollDistance).clamp(
-          0.0,
-          1.0,
-        );
-
-    // Calculate radius based on screen diagonal for full coverage
-    final screenSize = MediaQuery.of(context).size;
-    final screenDiagonal = math.sqrt(
-      screenSize.width * screenSize.width +
-          screenSize.height * screenSize.height,
-    );
-
-    // Expand from 0 to 2x screen diagonal
-    return screenDiagonal * 1.5 * flashProgress;
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentScale = _getCurrentScale();
-    final flashOpacity = _getFlashOpacity();
-    final flashRadius = _getFlashRadius();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       body: Stack(
         children: [
+          // 3D Earth at bottom center (50% of screen height) - below cockpit layer
+          Positioned(
+            left: 0,
+            right: 0,
+            top: MediaQuery.of(context).size.height * 0.5,
+            child: IgnorePointer(
+              child: Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  child: ModelViewer(
+                    src: 'assets/3d/earth.glb',
+                    alt: 'Earth 3D Model',
+                    autoRotate: true,
+                    cameraControls: false,
+                    backgroundColor: Colors.transparent,
+                    ar: false,
+                    arModes: const [],
+                    disableZoom: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Stars background
+          const StarsBackground(
+            starCount: 200,
+            minStarSize: 1.0,
+            maxStarSize: 3.0,
+            starColor: Colors.white,
+            twinkleSpeed: 30.0,
+            scrollSpeed: 13.0,
+          ),
           // background image with shake/tremble effect and zoom
           Positioned.fill(
             child: Transform.scale(
@@ -133,26 +145,9 @@ class _Section1State extends State<Section1>
               ),
             ),
           ),
-          // Stars background
-          const StarsBackground(
-            starCount: 200,
-            minStarSize: 1.0,
-            maxStarSize: 3.0,
-            starColor: Colors.white,
-            twinkleSpeed: 30.0,
-            scrollSpeed: 13.0,
-          ),
+
           // Shooting star on top
           // Center(child: CenterShootingStar()),
-
-          // White flash expanding from center
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: FlashPainter(flashOpacity, flashRadius),
-              ),
-            ),
-          ),
 
           // ScrollView to enable scrolling
           SingleChildScrollView(
@@ -169,29 +164,5 @@ class _Section1State extends State<Section1>
         ],
       ),
     );
-  }
-}
-
-class FlashPainter extends CustomPainter {
-  final double opacity;
-  final double radius;
-
-  FlashPainter(this.opacity, this.radius);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (opacity <= 0 || radius <= 0) return;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(opacity)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(FlashPainter oldDelegate) {
-    return oldDelegate.opacity != opacity || oldDelegate.radius != radius;
   }
 }

@@ -6,14 +6,37 @@ void main() {
   runApp(const LazerWidgets());
 }
 
-class LazerWidgets extends StatelessWidget {
+class LazerWidgets extends StatefulWidget {
   const LazerWidgets({super.key});
 
   @override
+  State<LazerWidgets> createState() => _LazerWidgetsState();
+}
+
+class _LazerWidgetsState extends State<LazerWidgets> {
+  double _flashProgress = 0.0;
+
+  void _handleFlashProgress(double progress) {
+    setState(() {
+      _flashProgress = progress;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return MaterialApp(
       theme: ThemeData.dark(),
-      home: const Scaffold(backgroundColor: Colors.black, body: Section2()),
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // Section 1 with its own scroll handling
+            Section1(onScrollProgress: _handleFlashProgress),
+          ],
+        ),
+      ),
     );
   }
 }
