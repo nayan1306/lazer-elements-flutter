@@ -12,6 +12,7 @@ class _Section2State extends State<Section2> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Align(
         alignment: Alignment.topCenter,
         child: Padding(
