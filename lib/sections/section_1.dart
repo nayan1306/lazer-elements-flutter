@@ -229,6 +229,33 @@ class _Section1State extends State<Section1>
         (smoothMovementProgress * (bottomPosition - centerPosition));
   }
 
+  double _getShootingStarOpacity() {
+    final scrollOffset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
+
+    // Text reaches topmost position at 2000px
+    const double textTopPositionOffset = 1600.0;
+    // Fade in over 200px for smooth appearance
+    const double fadeInDistance = 0.0;
+
+    if (scrollOffset < textTopPositionOffset) {
+      return 0.0;
+    }
+
+    // Fade in over 200px after text reaches top position
+    final fadeProgress =
+        ((scrollOffset - textTopPositionOffset) / fadeInDistance).clamp(
+          0.0,
+          1.0,
+        );
+
+    // Apply smooth easing for fade in
+    final smoothFadeProgress = _easeInOutCubic(fadeProgress);
+
+    return smoothFadeProgress.clamp(0.0, 1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentScale = _getCurrentScale();
@@ -400,8 +427,11 @@ class _Section1State extends State<Section1>
             ),
           ),
 
-          // Shooting star on top
-          Center(child: CenterShootingStar()),
+          // Shooting star on top - only visible after text reaches topmost position
+          Opacity(
+            opacity: _getShootingStarOpacity(),
+            child: Center(child: CenterShootingStar()),
+          ),
 
           // ScrollView to enable scrolling
           SingleChildScrollView(
