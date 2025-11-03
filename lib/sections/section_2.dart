@@ -33,6 +33,7 @@ class _Section2State extends State<Section2> {
                   const _PortraitLazerBox(width: 400, height: 600),
                 ],
               ),
+              const SizedBox(height: 100),
             ],
           ),
         ),

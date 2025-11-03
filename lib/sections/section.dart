@@ -19,34 +19,18 @@ class Section extends StatelessWidget {
         child: Column(
           children: [
             // Section 1
-            SizedBox(
-              height: screenHeight,
-              child: const Section1(),
-            ),
+            SizedBox(height: screenHeight, child: const Section1()),
             // Section 2
-            SizedBox(
-              height: screenHeight,
-              child: const Section2(),
-            ),
+            SizedBox(height: screenHeight * 1.2, child: const Section2()),
             // Section 3
-            SizedBox(
-              height: screenHeight,
-              child: const Section3(),
-            ),
+            SizedBox(height: screenHeight * 1.2, child: const Section3()),
             // Section 4
-            SizedBox(
-              height: screenHeight,
-              child: const Section4(),
-            ),
+            SizedBox(height: screenHeight, child: const Section4()),
             // Section 5
-            SizedBox(
-              height: screenHeight,
-              child: const Section5(),
-            ),
+            SizedBox(height: screenHeight, child: const Section5()),
           ],
         ),
       ),
     );
   }
 }
-
