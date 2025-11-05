@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lazer_widgets/sections/section_6.dart';
+import 'package:lazer_widgets/sections/section_7.dart';
 
 void main() {
   runApp(const LazerWidgets());
@@ -22,7 +22,7 @@ class _LazerWidgetsState extends State<LazerWidgets> {
         body: Stack(
           children: [
             // Section 1 with its own scroll handling
-            Section6(),
+            Section7(),
           ],
         ),
       ),
